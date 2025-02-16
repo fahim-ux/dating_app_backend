@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+          font-family: Arial, sans-serif;
+        }
+        .container {
+          max-width: 1000px;
+          margin: 20px auto;
+        }
+        /* Join Screen */
+        #join-section {
+          text-align: center;
+          padding: 20px;
+          border: 1px solid #ccc;
+          margin-bottom: 20px;
+        }
+        #join-section input {
+          padding: 8px;
+          margin-right: 10px;
+          width: 200px;
+        }
+        #join-section button {
+          padding: 8px 20px;
+          cursor: pointer;
+        }
+        .error {
+          color: red;
+          margin-top: 10px;
+        }
+        /* Chat Layout */
+        .chat-wrapper {
+          display: flex;
+          height: 500px; /* adjust as needed */
+          border: 1px solid #ccc;
+        }
+        .user-list {
+          width: 30%;
+          border-right: 1px solid #ccc;
+          padding: 10px;
+          overflow-y: auto;
+        }
+        .user-list h3 {
+          margin-top: 0;
+        }
+        .user-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 5px;
+          border-bottom: 1px solid #eee;
+        }
+        .user-item button {
+          padding: 5px 10px;
+          cursor: pointer;
+        }
+        .chat-section {
+          width: 70%;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+        }
+        .chat-header {
+          padding-bottom: 10px;
+          border-bottom: 1px solid #ccc;
+        }
+        .messages {
+          flex: 1;
+          overflow-y: auto;
+          border: 1px solid #eee;
+          margin: 10px 0;
+          padding: 10px;
+        }
+        .message {
+          margin: 5px 0;
+          padding: 5px;
+          border-radius: 5px;
+          max-width: 70%;
+        }
+        .sent {
+          background-color: #e3f2fd;
+          align-self: flex-end;
+        }
+        .received {
+          background-color: #f5f5f5;
+          align-self: flex-start;
+        }
+        .chat-input {
+          display: flex;
+        }
+        .chat-input input {
+          flex: 1;
+          padding: 8px;
+        }
+        .chat-input button {
+          padding: 8px 20px;
+          cursor: pointer;
+        }
+        /* Typing indicator */
+        #typingIndicator {
+          font-style: italic;
+          margin-top: 5px;
+          color: green;
+        }
+      </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Join Chat Section -->
+      <div id="join-section">
+        <h2>Join Chat</h2>
+        <input type="text" id="joinId" placeholder="Enter your ID" />
+        <button onclick="joinChat()">Join</button>
+        <div id="error-message" class="error"></div>
+      </div>
+
+      <!-- Main Chat Screen -->
+      <div id="main-chat" style="display: none">
+        <div class="chat-wrapper">
+          <!-- Left: All Users List -->
+          <div class="user-list">
+            <h3>All Users</h3>
+            <div id="all-users"></div>
+          </div>
+          <!-- Right: Chat Section -->
+          <div class="chat-section">
+            <div class="chat-header">
+              <span id="chat-with">Select a user to chat</span>
+            </div>
+            <div class="messages" id="messages"></div>
+            <div class="chat-input">
+              <input type="text" id="messageInput" placeholder="Type a message..." />
+              <button onclick="sendMessage()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket;
+      let currentRecipient = "";
+      const messagesDiv = document.getElementById("messages");
+      const messageInput = document.getElementById("messageInput");
+      const allUsersDiv = document.getElementById("all-users");
+      const chatWithSpan = document.getElementById("chat-with");
+
+      // Create typing indicator element
+      const typingIndicator = document.createElement("div");
+      typingIndicator.id = "typingIndicator";
+      messagesDiv.appendChild(typingIndicator);
+
+      let typingTimeout;
+
+      messageInput.addEventListener("input", () => {
+        const sender = document.getElementById("joinId").value.trim();
+        if (!currentRecipient) return;
+        socket.emit("typing", { sender, recipient: currentRecipient });
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          socket.emit("stopped_typing", { sender, recipient: currentRecipient });
+        }, 3000);
+      });
+
+      function joinChat() {
+        const joinId = document.getElementById("joinId").value.trim();
+        if (!joinId) {
+          document.getElementById("error-message").textContent = "Please enter an ID";
+          return;
+        }
+        document.getElementById("join-section").style.display = "none";
+        document.getElementById("main-chat").style.display = "block";
+        socket = io("http://localhost:5000");
+        socket.on("connect", () => {
+          socket.emit("user_connected", { userId: joinId });
+        });
+        socket.on("chat_history", (history) => {
+          messagesDiv.innerHTML = "";
+          history.forEach((msg) => displayMessage(msg));
+        });
+        socket.on("receive_message", (msg) => {
+          displayMessage(msg);
+          // Once a message is received, immediately acknowledge delivery.
+          const sender = msg.sender;
+          const recipient = document.getElementById("joinId").value.trim();
+          // Only acknowledge if this client is the recipient.
+          if (recipient === currentRecipient) {
+            socket.emit("message_delivered", { messageId: msg.id, sender, recipient });
+          }
+        });
+        socket.on("message_status_update", (data) => {
+          // data: { messageId, status }
+          // Update the corresponding message in the UI.
+          const messageEl = document.getElementById(data.messageId);
+          if (messageEl) {
+            // For demonstration, append the status text.
+            let statusEl = messageEl.querySelector(".status");
+            if (!statusEl) {
+              statusEl = document.createElement("span");
+              statusEl.className = "status";
+              statusEl.style.marginLeft = "10px";
+              messageEl.appendChild(statusEl);
+            }
+            statusEl.textContent = `(${data.status})`;
+          }
+        });
+        socket.on("user_typing", (data) => {
+          const joinId = document.getElementById("joinId").value.trim();
+          if (data.sender !== joinId) {
+            typingIndicator.textContent = `${data.sender} is typing...`;
+          }
+        });
+        socket.on("user_stopped_typing", () => {
+          typingIndicator.textContent = "";
+        });
+        socket.on("all_users", (users) => {
+          updateAllUsers(users);
+        });
+        socket.on("user_status", (data) => {
+          if (data.online) {
+            chatWithSpan.textContent = `Chat with ${data.userId} (Online)`;
+          } else {
+            chatWithSpan.textContent = `Chat with ${data.userId} (Last seen: ${data.lastSeen})`;
+          }
+        });
+      }
+
+      function updateAllUsers(users) {
+        allUsersDiv.innerHTML = "";
+        const myId = document.getElementById("joinId").value.trim();
+        users.forEach((user) => {
+          if (user === myId) return;
+          const userDiv = document.createElement("div");
+          userDiv.className = "user-item";
+          userDiv.innerHTML = `<span>${user}</span>`;
+          const connectBtn = document.createElement("button");
+          connectBtn.textContent = "Connect";
+          connectBtn.onclick = () => {
+            connectToUser(user);
+          };
+          userDiv.appendChild(connectBtn);
+          allUsersDiv.appendChild(userDiv);
+        });
+      }
+
+      function connectToUser(user) {
+        currentRecipient = user;
+        chatWithSpan.textContent = `Chat with ${user}`;
+        const myId = document.getElementById("joinId").value.trim();
+        socket.emit("join_room", { user1: myId, user2: user });
+        messagesDiv.innerHTML = "";
+        const roomNotification = document.createElement("div");
+        roomNotification.textContent = `You have joined a room with ${user}`;
+        roomNotification.style.color = "blue";
+        messagesDiv.appendChild(roomNotification);
+        socket.emit("fetch_chat_history", { user1: myId, user2: user });
+        // Request the current status of the selected user.
+        socket.emit("get_status", { userId: user });
+      }
+
+      function sendMessage() {
+        const sender = document.getElementById("joinId").value.trim();
+        if (!currentRecipient) {
+          alert("Please select a user to chat with");
+          return;
+        }
+        const text = messageInput.value.trim();
+        const messageId = Date.now().toString();
+        if (text) {
+          socket.emit("send_message", { sender, recipient: currentRecipient, text, messageId });
+          displayMessage({ sender, text, id: messageId, status: "sent" });
+          messageInput.value = "";
+        }
+      }
+
+      function displayMessage(msg) {
+        const messageElement = document.createElement("div");
+        messageElement.id = msg.id;
+        messageElement.className = "message " +
+          (msg.sender === document.getElementById("joinId").value.trim() ? "sent" : "received");
+        messageElement.innerHTML = `<strong>${msg.sender}:</strong> ${msg.text}`;
+        // Optionally display the status if available.
+        if (msg.status) {
+          const statusEl = document.createElement("span");
+          statusEl.className = "status";
+          statusEl.style.marginLeft = "10px";
+          statusEl.textContent = `(${msg.status})`;
+          messageElement.appendChild(statusEl);
+        }
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+    </script>
+  </body>
+</html>

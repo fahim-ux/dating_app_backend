@@ -1,0 +1,1 @@
+// Manages new message notifications and read status updates.

@@ -1,0 +1,1 @@
+// Manages message sending, receiving, and read receipts.
