@@ -6,8 +6,10 @@ import { Server } from "socket.io";
 import path from "path";
 import handleChat from "./events/handleChat";
 import { onlineUsers,lastSeen,allUsers } from "./utils/onlineUsers";
-import { use } from "passport";
+import { connectKafka } from "./kafka/kafka";
+import { startKafkaConsumer } from './kafka/consumer';
 
+// bin\windows\kafka-server-start.bat config\server.properties
 const app = express();
 const prisma = new PrismaClient();
 
@@ -15,10 +17,15 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const server = http.createServer(app);
-const io = new Server(server, {
+export const io = new Server(server, {
   cors: {
     origin: "*",
   },
+});
+
+connectKafka().catch(console.error);
+startKafkaConsumer().catch((err) => {
+  console.error("Error starting Kafka consumer:", err);
 });
 
 io.on("connection", (socket) => {

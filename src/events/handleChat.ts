@@ -1,8 +1,13 @@
 //  Handles fetching chat history, deleting messages, and clearing chats.
 import { Socket, Server } from "socket.io";
 import { onlineUsers, lastSeen } from "../utils/onlineUsers";
+import { sendMsgToKafka } from "../kafka/producer";
 
 const chatHistory: { [key: string]: { sender: string; text: string; id: string }[] } = {};
+
+async function send_msg_to_kafka(msg:string) {
+    await sendMsgToKafka("chat-messages", msg);
+}
 
 export default function handleChat(io: Server, socket: Socket) {
 
@@ -27,7 +32,8 @@ export default function handleChat(io: Server, socket: Socket) {
         const recipientSocket = onlineUsers.get(recipient);
         if (recipientSocket) {
             console.log("User is online, sending message to recipient");
-            io.to(recipientSocket).emit("receive_message", { sender, text, id: messageId ,status:'sent'});
+            send_msg_to_kafka(JSON.stringify({ sender, recipient, text, id: messageId }));
+            // io.to(recipientSocket).emit("receive_message", { sender, text, id: messageId ,status:'sent'});
         }
     });
 
