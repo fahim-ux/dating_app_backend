@@ -8,6 +8,7 @@ import handleChat from "./events/handleChat";
 import { onlineUsers,lastSeen,allUsers } from "./utils/onlineUsers";
 import { connectKafka } from "./kafka/kafka";
 import { startKafkaConsumer } from './kafka/consumer';
+import { connectToCassandra,disconnectFromCassandra,query } from "./db/d8_msg_db/connection";
 
 // bin\windows\kafka-server-start.bat config\server.properties
 const app = express();
@@ -23,10 +24,19 @@ export const io = new Server(server, {
   },
 });
 
-connectKafka().catch(console.error);
-startKafkaConsumer().catch((err) => {
-  console.error("Error starting Kafka consumer:", err);
-});
+// connectKafka().catch(console.error);
+// startKafkaConsumer().catch((err) => {
+//   console.error("Error starting Kafka consumer:", err);
+// });
+try {
+  connectToCassandra().then(() => {
+    query().then(() => {
+      disconnectFromCassandra();
+    });
+  });
+} catch (error) {
+  console.error('Error connecting to Cassandra', error);
+}
 
 io.on("connection", (socket) => {
   console.log("Server : a user connected ",socket.id);
