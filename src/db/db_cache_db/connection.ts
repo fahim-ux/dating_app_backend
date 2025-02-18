@@ -1,10 +1,12 @@
 import { Redis } from '@upstash/redis'
-
+import dotenv from 'dotenv';
+dotenv.config();
 // const redis = new Redis({
 //   url: process.env.KV_URL!, 
-//   token: process.env.KV_REST_API_TOKEN!, 
+//   token: process.env.KV_REST_API_TOKEN!
 // });
 export const connectToRedis = (): Redis => {
+    // if(!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return null;
     const redis = new Redis({
         url: process.env.KV_REST_API_URL!, 
         token: process.env.KV_REST_API_TOKEN!, 

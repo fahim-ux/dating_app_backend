@@ -10,7 +10,9 @@ import { connectKafka } from "./kafka/kafka";
 import { startKafkaConsumer } from './kafka/consumer';
 import { connectToCassandra,disconnectFromCassandra,query } from "./db/d8_msg_db/connection";
 import { connectToRedis,setData,getData,deleteData,checkIfKeyExists } from "./db/db_cache_db/connection";
+import { InsertUser,findAllUsers } from "./db/db_meta_db/connection";
 
+// start kafka locally
 // bin\windows\kafka-server-start.bat config\server.properties
 const app = express();
 const prisma = new PrismaClient();
@@ -24,32 +26,41 @@ export const io = new Server(server, {
     origin: "*",
   },
 });
-
+try {
+  const user = {name:'Test-Agent',email:'no-reply@coderfolks.com'}
+  InsertUser(prisma,user);
+  // findAllUsers(prisma).then(() => {
+  //   prisma.$disconnect();
+  // });
+  findAllUsers(prisma)
+} catch (error) {  
+  console.error('Error connecting to Neon-DB', error);
+}
 // connectKafka().catch(console.error);
 // startKafkaConsumer().catch((err) => {
 //   console.error("Error starting Kafka consumer:", err);
 // });
-try {
-  connectToCassandra().then(() => {
-    query().then(() => {
-      disconnectFromCassandra();
-    });
-  });
-} catch (error) {
-  console.error('Error connecting to Cassandra', error);
-}
+// try {
+//   connectToCassandra().then(() => {
+//     query().then(() => {
+//       disconnectFromCassandra();
+//     });
+//   });
+// } catch (error) {
+//   console.error('Error connecting to Cassandra', error);
+// }
 
-const redis = connectToRedis();
-setData(redis, 'test', 'test').then(() => {
-  getData(redis, 'test').then((data) => {
-    console.log('Data fetched:', data);
-    deleteData(redis, 'test').then(() => {
-      checkIfKeyExists(redis, 'test').then((exists) => {
-        console.log('Key exists:', exists);
-      });
-    });
-  });
-});
+// const redis = connectToRedis();
+// setData(redis, 'test', 'Hii Redis from backend').then(() => {
+//   getData(redis, 'test').then((data) => {
+//     console.log('Data fetched:', data);
+//     // deleteData(redis, 'test').then(() => {
+//     // });
+//     checkIfKeyExists(redis, 'test').then((exists) => {
+//       console.log('Key exists:', exists);
+//     });
+//   });
+// });
 
 
 
@@ -87,9 +98,9 @@ io.on("connection", (socket) => {
   });
 });
 
-app.get("/", async (req, res) => {
+app.get("/", async (req, res)=> {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
