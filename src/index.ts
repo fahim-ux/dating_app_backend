@@ -14,12 +14,14 @@ import { InsertUser,findAllUsers } from "./db/db_meta_db/connection";
 
 // start kafka locally
 // bin\windows\kafka-server-start.bat config\server.properties
+
+
 const app = express();
 const prisma = new PrismaClient();
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(express.static("public"));
+// app.use(express.static(path.join(__dirname, "public")));
 const server = http.createServer(app);
 export const io = new Server(server, {
   cors: {
@@ -99,7 +101,10 @@ io.on("connection", (socket) => {
 });
 
 app.get("/", async (req, res)=> {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(process.cwd(), "public", "index.html"));
+});
+app.get("/test", async (req, res)=> {
+  res.sendFile(path.join(process.cwd(), "public", "test_chat.html"));
 });
 
 const PORT = process.env.PORT || 3000;
