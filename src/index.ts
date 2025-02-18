@@ -9,6 +9,7 @@ import { onlineUsers,lastSeen,allUsers } from "./utils/onlineUsers";
 import { connectKafka } from "./kafka/kafka";
 import { startKafkaConsumer } from './kafka/consumer';
 import { connectToCassandra,disconnectFromCassandra,query } from "./db/d8_msg_db/connection";
+import { connectToRedis,setData,getData,deleteData,checkIfKeyExists } from "./db/db_cache_db/connection";
 
 // bin\windows\kafka-server-start.bat config\server.properties
 const app = express();
@@ -37,6 +38,21 @@ try {
 } catch (error) {
   console.error('Error connecting to Cassandra', error);
 }
+
+const redis = connectToRedis();
+setData(redis, 'test', 'test').then(() => {
+  getData(redis, 'test').then((data) => {
+    console.log('Data fetched:', data);
+    deleteData(redis, 'test').then(() => {
+      checkIfKeyExists(redis, 'test').then((exists) => {
+        console.log('Key exists:', exists);
+      });
+    });
+  });
+});
+
+
+
 
 io.on("connection", (socket) => {
   console.log("Server : a user connected ",socket.id);
