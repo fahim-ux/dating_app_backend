@@ -14,10 +14,15 @@ export const connectToRedis = (): Redis => {
     console.log('Connected to Redis');
     return redis;
   };
-export const setData = async (redis:Redis, key: string, value: string): Promise<void> => {
+  export const setData = async (
+    redis: Redis, 
+    key: string, 
+    value: string, 
+    ttl: number 
+  ): Promise<void> => {
     try {
-      await redis.set(key, value);
-      console.log(`Data saved: ${key} = ${value}`);
+      await redis.set(key, value,{ex:ttl});
+      console.log(`Data saved: ${key} = ${value} (expires in ${ttl} seconds)`);
     } catch (error) {
       console.error(`Error saving data for key ${key}:`, error);
       throw new Error('Failed to save data');

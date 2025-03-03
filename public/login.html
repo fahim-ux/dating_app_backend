@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dating App Registration</title>
+    <style>
+      :root {
+        --primary-color: #ff4d67;
+        --secondary-color: #ff85a1;
+        --dark-color: #1e1e2c;
+        --light-color: #f8f9fa;
+        --accent-color: #6a11cb;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(
+          135deg,
+          var(--dark-color),
+          var(--accent-color)
+        );
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .container {
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        width: 400px;
+        padding: 40px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+      }
+
+      .logo {
+        margin-bottom: 30px;
+      }
+
+      .logo h1 {
+        color: var(--primary-color);
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .logo p {
+        color: var(--dark-color);
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      h2 {
+        color: var(--dark-color);
+        margin-bottom: 30px;
+        font-weight: 600;
+      }
+
+      .form-group {
+        margin-bottom: 25px;
+        text-align: left;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--dark-color);
+        font-size: 14px;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(255, 77, 103, 0.2);
+      }
+
+      .optional-label {
+        color: #888;
+        font-size: 12px;
+        margin-left: 5px;
+      }
+
+      button {
+        background: linear-gradient(
+          to right,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 15px;
+        width: 100%;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+      }
+
+      button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(255, 77, 103, 0.3);
+      }
+
+      .error {
+        color: #e74c3c;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+      }
+
+      .success-message {
+        display: none;
+        background-color: #d4edda;
+        color: #155724;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        animation: fadeIn 0.5s;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s, visibility 0.3s;
+      }
+
+      .overlay.active {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      .loader {
+        width: 60px;
+        height: 60px;
+        border: 5px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: var(--primary-color);
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .form-disabled {
+        pointer-events: none;
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="logo">
+        <h1>DateConnect</h1>
+        <p>Find your perfect match today</p>
+      </div>
+
+      <h2>LogIn into your Account</h2>
+
+      <form id="LogInForm">
+        <div class="form-group">
+          <label for="phone">Phone Number*</label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone_number"
+            placeholder="Enter your phone number"
+            required
+          />
+          <div class="error" id="phoneError">
+            Please enter a valid phone number
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="username">Username*</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Enter username"
+          />
+          <div class="error" id="usernameError">
+            Username contains only letters, numbers and underscores
+          </div>
+        </div>
+        <button type="submit" id="submitBtn">LogIn</button>
+      </form>
+
+      <div class="success-message" id="successMessage">
+        Welcome to DateConnect! Redirecting to HomePage ....
+      </div>
+    </div>
+    <div class="overlay" id="loadingOverlay">
+      <div class="loader"></div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("LogInForm");
+        const phoneInput = document.getElementById("phone");
+        const usernameInput = document.getElementById("username");
+        const phoneError = document.getElementById("phoneError");
+        const usernameError = document.getElementById("usernameError");
+        const successMessage = document.getElementById("successMessage");
+
+        // Function to validate phone number
+        function validatePhone(phone) {
+          // Basic phone number validation (adjust as needed)
+          const phoneRegex = /^\+?[0-9]{10,15}$/;
+          return phoneRegex.test(phone);
+        }
+
+        // Function to validate username
+        function validateUsername(username) {
+          if (!username) return true; // Optional field
+          const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+          return usernameRegex.test(username);
+        }
+
+        // Input validation events
+        phoneInput.addEventListener("blur", function () {
+          if (!validatePhone(this.value.trim())) {
+            phoneError.style.display = "block";
+          } else {
+            phoneError.style.display = "none";
+          }
+        });
+
+        usernameInput.addEventListener("blur", function () {
+          if (this.value.trim() && !validateUsername(this.value.trim())) {
+            usernameError.style.display = "block";
+          } else {
+            usernameError.style.display = "none";
+          }
+        });
+
+        // Form submission
+        form.addEventListener("submit", function (e) {
+          console.log("Form Submissoion trigerred");
+          e.preventDefault();
+
+          const phone = phoneInput.value.trim();
+          const username = usernameInput.value.trim();
+          // Validate all fields
+          let isValid = true;
+
+          if (!validatePhone(phone)) {
+            phoneError.style.display = "block";
+            isValid = false;
+          }
+
+          if (username && !validateUsername(username)) {
+            usernameError.style.display = "block";
+            isValid = false;
+          }
+          if (!isValid) return;
+
+          // Create user object
+          const userData = {
+            phone_number: phone || "",
+            username: username || "",
+          };
+
+          console.log("User data to be used for login:", userData);
+
+          // Show loading overlay and disable form
+          const loadingOverlay = document.getElementById("loadingOverlay");
+          loadingOverlay.classList.add("active");
+          form.classList.add("form-disabled");
+
+          // Disable all inputs
+          const formInputs = form.querySelectorAll("input, button");
+          formInputs.forEach((input) => {
+            input.setAttribute("disabled", "disabled");
+          });
+
+          // Send API request
+          fetch("/api/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(userData),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then((data) => {
+              console.log("Success:", data);
+              localStorage.setItem('userPhoneNumber', userData.phone_number);
+              localStorage.setItem('username', userData.username);
+              if(data.data){
+                localStorage.setItem('last_seen', data.data.last_seen);
+                localStorage.setItem('is_online', data.data.is_online);
+                localStorage.setItem('profile_picture', data.data.profile_picture);
+              }
+              // Hide loading overlay
+              loadingOverlay.classList.remove("active");
+
+              // Show success message
+              form.style.display = "none";
+              successMessage.style.display = "block";
+              setTimeout(() => {
+                window.location.href = "/chat.html";
+              }, 1000);
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+
+              // Hide loading overlay
+              loadingOverlay.classList.remove("active");
+
+              // Re-enable form
+              form.classList.remove("form-disabled");
+              formInputs.forEach((input) => {
+                input.removeAttribute("disabled");
+              });
+
+              // Show error message (you could add an error message element)
+              alert("User Not found. Please try again.");
+            });
+        });
+      });
+    </script>
+  </body>
+</html>

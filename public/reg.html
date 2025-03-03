@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dating App Registration</title>
+    <style>
+        :root {
+            --primary-color: #ff4d67;
+            --secondary-color: #ff85a1;
+            --dark-color: #1e1e2c;
+            --light-color: #f8f9fa;
+            --accent-color: #6a11cb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg,
+                    var(--dark-color),
+                    var(--accent-color));
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 400px;
+            padding: 40px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: var(--primary-color);
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .logo p {
+            color: var(--dark-color);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: var(--dark-color);
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark-color);
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 77, 103, 0.2);
+        }
+
+        .optional-label {
+            color: #888;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        button {
+            background: linear-gradient(to right,
+                    var(--primary-color),
+                    var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 77, 103, 0.3);
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .success-message {
+            display: none;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .form-disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>DateConnect</h1>
+            <p>Find your perfect match today</p>
+        </div>
+        <div class="login_page">
+            <span>Have an Account</span> <a href="login.html">Login</a>
+        </div>
+
+        <h2>Create Your Account</h2>
+
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="phone">Phone Number*</label>
+                <input type="tel" id="phone" name="phone_number" placeholder="Enter your phone number" required />
+                <div class="error" id="phoneError">
+                    Please enter a valid phone number
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="username">Username <span class="optional-label">(optional)</span></label>
+                <input type="text" id="username" name="username" placeholder="Choose a username" />
+                <div class="error" id="usernameError">
+                    Username can only contain letters, numbers and underscores
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="profilePicture">Profile Picture URL
+                    <span class="optional-label">(optional)</span></label>
+                <input type="url" id="profilePicture" name="profile_picture"
+                    placeholder="https://example.com/your-image.jpg" />
+                <div class="error" id="profilePictureError">
+                    Please enter a valid URL
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn">Register</button>
+        </form>
+
+        <div class="success-message" id="successMessage">
+            Registration successful! Welcome to DateConnect!
+            Redirecting to HomePage ....
+        </div>
+    </div>
+    <div class="overlay" id="loadingOverlay">
+        <div class="loader"></div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("registrationForm");
+            const phoneInput = document.getElementById("phone");
+            const usernameInput = document.getElementById("username");
+            const profilePictureInput = document.getElementById("profilePicture");
+            const phoneError = document.getElementById("phoneError");
+            const usernameError = document.getElementById("usernameError");
+            const profilePictureError = document.getElementById(
+                "profilePictureError"
+            );
+            const successMessage = document.getElementById("successMessage");
+
+            // Function to validate phone number
+            function validatePhone(phone) {
+                // Basic phone number validation (adjust as needed)
+                const phoneRegex = /^\+?[0-9]{10,15}$/;
+                return phoneRegex.test(phone);
+            }
+
+            // Function to validate username
+            function validateUsername(username) {
+                if (!username) return true; // Optional field
+                const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+                return usernameRegex.test(username);
+            }
+
+            // Function to validate URL
+            function validateURL(url) {
+                if (!url) return true; // Optional field
+                try {
+                    new URL(url);
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            // Input validation events
+            phoneInput.addEventListener("blur", function () {
+                if (!validatePhone(this.value.trim())) {
+                    phoneError.style.display = "block";
+                } else {
+                    phoneError.style.display = "none";
+                }
+            });
+
+            usernameInput.addEventListener("blur", function () {
+                if (this.value.trim() && !validateUsername(this.value.trim())) {
+                    usernameError.style.display = "block";
+                } else {
+                    usernameError.style.display = "none";
+                }
+            });
+
+            profilePictureInput.addEventListener("blur", function () {
+                if (this.value.trim() && !validateURL(this.value.trim())) {
+                    profilePictureError.style.display = "block";
+                } else {
+                    profilePictureError.style.display = "none";
+                }
+            });
+
+            // Form submission
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                const phone = phoneInput.value.trim();
+                const username = usernameInput.value.trim();
+                const profilePicture = profilePictureInput.value.trim();
+
+                // Validate all fields
+                let isValid = true;
+
+                if (!validatePhone(phone)) {
+                    phoneError.style.display = "block";
+                    isValid = false;
+                }
+
+                if (username && !validateUsername(username)) {
+                    usernameError.style.display = "block";
+                    isValid = false;
+                }
+
+                if (profilePicture && !validateURL(profilePicture)) {
+                    profilePictureError.style.display = "block";
+                    isValid = false;
+                }
+
+                if (!isValid) return;
+
+                // Create user object
+                const userData = {
+                    phone_number: phone,
+                    username: username || null,
+                    profile_picture: profilePicture || null,
+                };
+
+                console.log("User data to be submitted:", userData);
+
+                // Show loading overlay and disable form
+                const loadingOverlay = document.getElementById("loadingOverlay");
+                loadingOverlay.classList.add("active");
+                form.classList.add("form-disabled");
+
+                // Disable all inputs
+                const formInputs = form.querySelectorAll("input, button");
+                formInputs.forEach((input) => {
+                    input.setAttribute("disabled", "disabled");
+                });
+
+                // Send API request
+                fetch("/api/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(userData),
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        console.log("Success:", data);
+
+                        // Hide loading overlay
+                        loadingOverlay.classList.remove("active");
+
+                        // Show success message
+                        form.style.display = "none";
+                        successMessage.style.display = "block";
+                        fetch("/login", {
+                            method: "GET",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                        }).catch((error) => {
+                                console.error("Error:", error);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+
+                        // Hide loading overlay
+                        loadingOverlay.classList.remove("active");
+
+                        // Re-enable form
+                        form.classList.remove("form-disabled");
+                        formInputs.forEach((input) => {
+                            input.removeAttribute("disabled");
+                        });
+
+                        // Show error message (you could add an error message element)
+                        alert("Registration failed. Please try again.");
+                    });
+            });
+        });
+    </script>
+</body>
+
+</html>

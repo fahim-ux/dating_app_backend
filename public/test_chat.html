@@ -175,7 +175,7 @@
         }
         document.getElementById("join-section").style.display = "none";
         document.getElementById("main-chat").style.display = "block";
-        socket = io("http://localhost:5000");
+        socket = io("http://localhost:3000");
         socket.on("connect", () => {
           socket.emit("user_connected", { userId: joinId });
         });
@@ -271,8 +271,11 @@
         }
         const text = messageInput.value.trim();
         const messageId = Date.now().toString();
+        const conversation_id  = sender + currentRecipient;
+        const created_at = new Date().toISOString();
+        const message = { conversation_id,created_at,sender, currentRecipient, text };
         if (text) {
-          socket.emit("send_message", { sender, recipient: currentRecipient, text, messageId });
+          socket.emit("send_message", message);
           displayMessage({ sender, text, id: messageId, status: "sent" });
           messageInput.value = "";
         }
