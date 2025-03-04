@@ -1,7 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { setData } from "../db_cache_db/connection";
-import { Redis } from "@upstash/redis";
-import { lastSeen } from "../../utils/onlineUsers";
+import { Socket } from "socket.io";
 
 // const prisma = new PrismaClient();
 
@@ -70,4 +68,54 @@ export async function verify_user  (prisma:PrismaClient,data:{phone_number:strin
     });
     console.log("User found:", user);
     return  user;
+}
+
+
+export async function create_session  (prisma:PrismaClient,user_id:string,session_id:string,device_id:string,ipAddress:string,userAgent:string)  {
+    try{
+        await prisma.session.create({
+            data:{
+                session_id:session_id,
+                user_id:user_id,
+                device_id:device_id,
+                ip_address:ipAddress,
+                user_agent:userAgent
+            }
+        });
+        console.log("Session created for user:", user_id);
+    }
+    catch(error){
+        console.error("Error creating session:", error);
+    }
+
+}
+export async function update_session(prisma: PrismaClient, user_id: string, session_id: string) {
+    console.log("Updating session for socket id :", session_id);
+    try {
+
+        const exist_session = await prisma.session.findFirst({
+            where: {
+                user_id: user_id,
+            },
+        });
+
+        if(!exist_session){
+            console.log("Session not found for user:", user_id);
+            return;
+        }
+
+
+        await prisma.session.update({
+            where: {
+                session_id:exist_session.session_id, // Ensure session_id is unique
+            },
+            data: {
+                last_activity: new Date(),
+                is_online: false,
+            },
+        });
+        console.log("Session updated for user:", user_id);
+    } catch (error) {
+        console.error("Error updating session:", error);
+    }
 }

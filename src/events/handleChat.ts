@@ -1,38 +1,25 @@
 //  Handles fetching chat history, deleting messages, and clearing chats.
 import { Socket, Server } from "socket.io";
-import { onlineUsers, lastSeen } from "../utils/onlineUsers";
 import { sendMsgToKafka } from "../kafka/producer";
 import { Message } from "../models/Message";
+import { insertMessage } from "../db/d8_msg_db/connection";
 
 
 async function send_msg_to_kafka(msg: string) {
     await sendMsgToKafka("chat-messages", msg);
 }
-
+async function insert_msg (message: Message) {
+    await insertMessage(message);
+    console.log("Message inserted successfully");
+}
 export default function handleChat(io: Server, socket: Socket) {
 
     socket.on("send_message", (message: Message) => {
         console.log(`User {${message.sender_id}} sent a message to {${message.receiver_id}}: ${message.message_text}`);
-        send_msg_to_kafka(JSON.stringify(message));
-    }); //done
+        insert_msg(message);
+    });
 
-    // socket.on("get_all_users", () => {
-    //     console.log("All users requested by client");
     
-    //     fetch("http://localhost:3000/api/users") // Ensure the correct port
-    //         .then((response) => {
-    //             if (!response.ok) {
-    //                 throw new Error(`HTTP error! Status: ${response.status}`);
-    //             }
-    //             return response.json();
-    //         })
-    //         .then((data) => {
-    //             socket.emit("all_users", data);
-    //         })
-    //         .catch((error) => {
-    //             console.error("Error fetching users:", error);
-    //         });
-    // });
     // socket.on('typing', ({ sender, recipient }) => {
     //     console.log("User Typing triggered");
     //     const recipientSocket = onlineUsers.get(recipient);
@@ -51,12 +38,6 @@ export default function handleChat(io: Server, socket: Socket) {
     //     }
     // });
 
-    socket.on("join_room", ({ user1, user2 }) => {
-        const room = [user1, user2].sort().join("_"); // Unique room name
-        socket.join(room);
-        console.log(`${user1} and ${user2} joined room: ${room}`);
-        io.to(room).emit("room_joined", { room });
-    });
 
     // socket.on("get_last_seen", (data: { userId: string }) => {
     //     const { userId } = data;

@@ -10,8 +10,9 @@ import { connectKafka } from "./kafka/kafka";
 import { startKafkaConsumer } from './kafka/consumer';
 import { connectToCassandra, disconnectFromCassandra, query } from "./db/d8_msg_db/connection";
 import { connectToRedis, setData, getData, deleteData, checkIfKeyExists } from "./db/db_cache_db/connection";
-import { find_User_Id, update_status, CreateUser, findAllUsers, verify_user } from "./db/db_meta_db/connection";
-import { use } from "passport";
+import { find_User_Id, update_status, CreateUser, findAllUsers, verify_user,create_session,update_session } from "./db/db_meta_db/connection";
+import { aw, u } from "@upstash/redis/zmscore-C3G81zLz";
+
 
 // start kafka locally
 // bin\windows\kafka-server-start.bat config\server.properties
@@ -111,23 +112,29 @@ app.post("/api/login", async (req, res) => {
 
 
 io.on("connection", (socket) => {
-
+  const userAgent = socket.request.headers["user-agent"] || "Unknown";
+  const ipAddress = socket.handshake.address;
+  let phno : string | undefined;
+  let userid: string |undefined;
   // user connects
-  socket.on("user_connected", async ({ phn_no }) => {
+  socket.on("user_connected", async ({ phn_no,device_id }) => {
     try {
       const user_id = await find_User_Id(prisma, phn_no);
       if (!user_id) {
+        
         console.error(`User not found for phone number: ${phn_no}`);
         return;
       }
       console.log("User Id found:", user_id);
-
+      userid = user_id;
+      phno = phn_no;
       await redis.set(`user_${user_id}`, true);
-
+      await create_session(prisma,user_id,socket.id,device_id,ipAddress,userAgent);
       await update_status(prisma, phn_no, true);
 
       console.log(`User ${phn_no} connected`);
-
+      phn_no = phn_no;
+      userid = user_id;
       socket.broadcast.emit("user_status", {
         phn_no,
         is_online: true,
@@ -167,12 +174,14 @@ io.on("connection", (socket) => {
 
 
   // user disconnected
-  socket.on("user_disconnected", async ({ phn_no }) => {
+  socket.on("user_disconnected", async ({phn_no}) => {
+    console.log("User disconnected:", phn_no);
+
     try {
       const user_id = await find_User_Id(prisma, phn_no);
 
       if (!user_id) {
-        console.error(`User not found for phone number: ${phn_no}`);
+        console.error(`User not found for phone number: ${phno}`);
         return;
       }
 
@@ -181,11 +190,11 @@ io.on("connection", (socket) => {
       await redis.del(`user_${user_id}`);
 
       await update_status(prisma, phn_no, false);
-
-      console.log(`User ${phn_no} disconnected`);
+      await update_session(prisma,user_id,socket.id);
+      console.log(`User ${phno} disconnected`);
 
       socket.broadcast.emit("user_status", {
-        user_id,
+        phno,
         is_online: false,
       });
 
@@ -194,9 +203,6 @@ io.on("connection", (socket) => {
     }
   });
 });
-
-
-
 
 
 

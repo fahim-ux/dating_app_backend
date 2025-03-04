@@ -16,7 +16,8 @@ model User {
   is_online      Boolean  @default(false)  
 
   // Relations
-  devices        Device[]  
+  devices        Device[]
+  sessions        Session[]  
   sentMessages   MessageQueue[] @relation("SentMessages")
   receivedMessages MessageQueue[] @relation("ReceivedMessages")
   messageMetadataSent MessageMetadata[] @relation("MetadataSent")
@@ -35,6 +36,7 @@ model Device {
   last_active  DateTime @default(now())  
 
   // Relations
+  sessions Session[]
   user User @relation(fields: [user_id], references: [user_id])
 
   created_at  DateTime @default(now())  
@@ -67,3 +69,23 @@ model MessageMetadata {
   updated_at DateTime @updatedAt  
 }
 
+
+
+model Session {
+  session_id      String   @id // This will be the socket.id
+  user_id         String
+  device_id       String?
+  connection_time DateTime @default(now())
+  last_activity   DateTime @default(now())
+  ip_address      String?
+  user_agent      String?
+  is_online       Boolean  @default(true)
+
+  // Relations
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  device Device? @relation(fields: [device_id], references: [device_id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([is_online])
+  @@map("sessions")
+}

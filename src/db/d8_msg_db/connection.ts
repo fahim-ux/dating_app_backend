@@ -44,25 +44,14 @@ export async function query() {
 }
 
 
-// CREATE TABLE IF NOT EXISTS messages_keyspace.messages (
-//     conversation_id TEXT,
-//     created_at TIMESTAMP,
-//     message_id UUID,
-//     sender_id TEXT,
-//     receiver_id TEXT,
-//     message_text TEXT,
-//     status TEXT,
-//     PRIMARY KEY (conversation_id, created_at, message_id)
-// ) WITH CLUSTERING ORDER BY (created_at DESC, message_id ASC);
-
-
 export async function insertMessage(message:Message) {
     const query = `
-        INSERT INTO messages (conversation_id, created_at, message_id, sender_id, receiver_id, message_text, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO messages_keyspace.messages (conversation_id, created_at, message_id,  media_url, message_text, receiver_id, sender_id, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?,?)
     `;
     const messageId = uuid();
-    const params = [message.conversation_id, message.created_at, messageId, message.sender_id, message.receiver_id, message.message_text, message.status];
+    const media_url = 'NA';
+    const params = [message.conversation_id, message.created_at, messageId,media_url, message.message_text,message.receiver_id, message.sender_id,message.status];
     try {
         await CassandraClient.execute(query, params, { prepare: true });
         console.log('<Cassandra Client>: Message inserted successfully');
@@ -70,3 +59,14 @@ export async function insertMessage(message:Message) {
         console.error('<Cassandra Client>: Error inserting message:', error);
     }
 }
+// CREATE TABLE messages_keyspace.messages (
+//     conversation_id text,
+//     created_at timestamp,
+//     message_id uuid,
+//     media_url text,
+//     message_text text,
+//     receiver_id text,
+//     sender_id text,
+//     status text,
+//     PRIMARY KEY (conversation_id, created_at, message_id)
+// ) WITH CLUSTERING ORDER BY (created_at DESC, message_id DESC) 

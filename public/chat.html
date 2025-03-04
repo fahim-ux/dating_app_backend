@@ -356,6 +356,7 @@
                         <!-- Selected user initial will be added by JS -->
                     </div>
                     <h3 id="selected-user-name">Loading...</h3>
+                    <h4 id="selected-user-name-status">Loading...</h4>
                 </div>
                 <div class="chat-messages" id="chat-messages">
                     <div class="typing-indicator" id="typing-indicator"></div>
@@ -383,7 +384,7 @@
             is_online: localStorage.getItem("is_online") || false,
         };
 
-        let selectedUser = null;
+        let selectedUser = {};
         let socket;
         let users = [];
         let typingTimer;
@@ -417,7 +418,7 @@
                     if (selectedUser) {
                         socket.emit("typing", {
                             sender: currentUser.phoneNumber,
-                            recipient: selectedUser.phoneNumber,
+                            recipient: selectedUser.phone_number,
                         });
 
                         // Clear previous timeout
@@ -427,7 +428,7 @@
                         typingTimer = setTimeout(() => {
                             socket.emit("stopped_typing", {
                                 sender: currentUser.phoneNumber,
-                                recipient: selectedUser.phoneNumber,
+                                recipient: selectedUser.phone_number,
                             });
                         }, 1000);
                     }
@@ -462,10 +463,10 @@
             // Listen for incoming messages
             socket.on("receive_message", (message) => {
                 if (
-                    (message.sender === selectedUser?.phoneNumber &&
+                    (message.sender === selectedUser?.phone_number &&
                         message.recipient === currentUser.phoneNumber) ||
                     (message.sender === currentUser.phoneNumber &&
-                        message.recipient === selectedUser?.phoneNumber)
+                        message.recipient === selectedUser?.phone_number)
                 ) {
                     displayMessage(message);
 
@@ -480,14 +481,14 @@
 
             // Listen for typing indicators
             socket.on("user_typing", (data) => {
-                if (selectedUser && data.sender === selectedUser.phoneNumber) {
+                if (selectedUser && data.sender === selectedUser.phone_number) {
                     document.getElementById("typing-indicator").textContent =
                         "Typing...";
                 }
             });
 
             socket.on("user_stopped_typing", (data) => {
-                if (selectedUser && data.sender === selectedUser.phoneNumber) {
+                if (selectedUser && data.sender === selectedUser.phone_number) {
                     document.getElementById("typing-indicator").textContent = "";
                 }
             });
@@ -505,10 +506,7 @@
 
             socket.on("user_status", (data) => {
                 console.log("User status:", data);
-                // if (data.phn_no === currentUser.phoneNumber) {
-                //     currentUser.is_online = data.is_online;
-                //     socket.emit("get_all_users");
-                // }
+                localStorage.setItem(`status_${data.phn_no}`, data.is_online);
             });
         }
 
@@ -551,6 +549,7 @@
         }
 
         function selectUser(user) {
+            console.log("Selected user:", user);
             selectedUser = user;
 
             // Update UI
@@ -570,14 +569,16 @@
             // Update header with selected user
             document.getElementById("selected-user-name").textContent =
                 user.username || "Anonymous";
+            document.getElementById("selected-user-name-status").textContent =
+                localStorage.getItem(`status_${user.phone_number}`) === 'true' ? 'Online' : 'Offline';
             document.getElementById("selected-user-avatar").textContent =
                 getInitials(user.username || user.phone_number);
 
             // Join room with user
-            socket.emit("join_room", {
-                user1: currentUser.phoneNumber,
-                user2: user.phone_number,
-            });
+            // socket.emit("join_room", {
+            //     user1: currentUser.phoneNumber,
+            //     user2: user.phone_number,
+            // });
 
             // Request chat history
             socket.emit("fetch_chat_history", {
@@ -593,13 +594,14 @@
             if (!messageText || !selectedUser) return;
 
             const message = {
-                sender: currentUser.phoneNumber,
-                recipient: selectedUser.phoneNumber,
-                text: messageText,
-                id: Date.now().toString(),
-                timestamp: new Date().toISOString(),
+                conversation_id: `${currentUser.phoneNumber}_${selectedUser.phone_number}`,
+                sender_id: currentUser.phoneNumber,
+                receiver_id: selectedUser.phone_number,
+                message_text: messageText,
+                created_at: new Date().toISOString(),
+                status: "sent",
             };
-
+            console.log("Message to send:", message);
             // Emit message to server
             socket.emit("send_message", message);
 
@@ -617,17 +619,17 @@
             const messageContainer = document.createElement("div");
             messageContainer.className =
                 "message " +
-                (message.sender === currentUser.phoneNumber
+                (message.sender_id === currentUser.phoneNumber
                     ? "outgoing"
                     : "incoming");
-            messageContainer.id = message.id;
+            messageContainer.id = message.conversation_id;
 
             const messageText = document.createElement("div");
-            messageText.textContent = message.text;
+            messageText.textContent = message.message_text;
 
             const messageTime = document.createElement("div");
             messageTime.className = "message-time";
-            messageTime.textContent = formatTime(message.timestamp || new Date());
+            messageTime.textContent = formatTime(message.created_at || new Date());
 
             messageContainer.appendChild(messageText);
             messageContainer.appendChild(messageTime);
@@ -657,26 +659,21 @@
         }
         function disconnectFromServer() {
             console.log("Disconnecting from server...");
-            // First emit the disconnect event to the server
+
             if (socket) {
-                socket.emit('user_disconnected', { phn_no: currentUser.phoneNumber });
+                // Properly disconnect the client
+                socket.emit('user_disconnected', { phn_no: currentUser.phoneNumber }); // Use a custom event if needed
 
-                // Wait briefly for the server to process the disconnect event
-                setTimeout(() => {
-                    // Disconnect the socket
-                    socket.disconnect();
+                socket.disconnect();  // This will trigger the "disconnect" event automatically
 
-                    // Clear the localStorage
-                    localStorage.clear();
-
-                    // Redirect to login page
-                    window.location.href = '/login';
-                }, 500);
-            } else {
-                // If socket not connected, just clear and redirect
-                localStorage.clear();
-                window.location.href = '/login';
+                // Optional: Inform the server before disconnecting
             }
+
+            // Clear the localStorage
+            localStorage.clear();
+
+            // Redirect to login page
+            window.location.href = '/login';
         }
     </script>
 </body>
